@@ -1,5 +1,5 @@
 ## 프로젝트 개요
-ftp 서버간 파일 공유 앱
+ftp 서버간 파일 공유 앱 - 1 item case
 사용기술 : C#, FTP, Mysql
 
 ##포함파일
@@ -13,6 +13,9 @@ CMWIPINF_FIELD
 
 btn_Connect_Click
 - app 시작
+
+timer
+- 타이머 동작 하며 특정 파일명 포함한 파일만 업체 공유("CMWIPINF")
 
 
 
