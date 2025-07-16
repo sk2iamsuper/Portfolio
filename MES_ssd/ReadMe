@@ -1,0 +1,28 @@
+## 개요
+MES 시스템에서 부품 재고(Component Inventory) 및 이력(Event History)을 관리하는 기능 코드
+- 사용기술: c#, Oracle, Mysql
+
+## 상세 설명
+- 초기 로딩, frmCOMP_INVENTORY_Load()
+  CONSM_PROD_ID 리스트를 조회하여 ComboBox(cbSeries)에 추가
+
+- 부품 재고 조회
+  사용자가 제품 코드(cbProdCode)를 입력하거나 cbSeries 선택 시 → GetMatScanData 호출
+  Oracle DB의 MODULE.MC_CONSM 테이블에서 재고 있는 부품 목록을 불러옴
+  제품 코드가 K4로 시작하면 dgvTab3MainList, 아니면 dgvTab1MainList에 출력
+
+- 부품 이력 조회
+dgvTab1MainList 또는 dgvTab3MainList에서 더블클릭 시 MODULE.MC_CONSM_HIST 테이블에서 이벤트 이력(CompMerge, CompSplit 등) 불러오기
+이력 중 CompSplit 이벤트는 빨간색으로 표시
+
+- ScanData 기반 BOM 조회
+txtScanData 입력 후 Enter → BOM 구성요소(BS_CM_MOD_BOM), 옵션제외 리스트(BE_LOTPEG_SSD_OPT2_N) 조회
+해당 부품 리스트를 dgvTab1MainList에 표시 및 FABLINE에 따라 GetCompList 호출
+
+- Lot ID 검색
+txtLotID 입력 후 Enter → 해당 Lot ID를 dgvTab1MainList, dgvTab3MainList에서 찾아 선택
+
+- 수량 계산 
+textBox1 입력 수량 × BOM 수량 → dgvTab2MainList에 표시
+
+
