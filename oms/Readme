@@ -9,7 +9,11 @@ oms.cs : 고객사 전송 .ff 파일 구문 분석 및 db 파싱 후 고객사 �
 ## 함수 설명
 
 CMWIPINF_FIELD
-- 고객사 사양서 기준 변수 공간 확보
+- 고객사 정의한 변수 공간 확보
+
+btn_Connect_Click
+- app 시작
+
 
 
 
