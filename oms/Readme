@@ -3,7 +3,7 @@ ftp 서버간 파일 공유 앱 - 1 item case
 사용기술 : C#, FTP, Mysql
 
 ##포함파일
-oms.cs : 고객사 전송 .ff 파일 구문 분석 및 db 파싱 후 고객사 파일 업체 공유 메인 로직
+oms.cs : 고객사 전송 .ff 파일 파싱 후 db 업데이트 및 고객사 파일 업체 공유 메인 로직
 
 
 ## 함수 설명
@@ -16,6 +16,12 @@ btn_Connect_Click
 
 timer
 - 타이머 동작 하며 특정 파일명 포함한 파일만 업체 공유("CMWIPINF")
+
+CMWIPINF_Parser
+- 고객사 전송 파일 파싱 
+
+db_update
+- 파싱된 변수 db 저장
 
 
 
