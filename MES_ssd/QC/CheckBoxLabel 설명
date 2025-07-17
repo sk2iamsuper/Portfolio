@@ -1,0 +1,23 @@
+
+1.라벨 이미지 로딩 (frmBoxLabelCheck_Load)
+tb_ssd_std_program 테이블에서 라벨 이미지 (program 컬럼, BLOB)를 읽어 PictureBox에 표시.
+
+2. 소박스/대박스 스캔 처리 (txtScanData_KeyUp)
+  스캔된 문자열 길이에 따라 소박스(21자리) 또는 대박스(12자리)로 구분.
+  해당 박스에 포함된 SN, UPC, EAN, Sale Code 등의 정보를 DB에서 조회하고 DataGridView에 바인딩.
+  모델명에 따라 PSSD / 브랜드 / DC / OEM / HP 등 다양한 방식으로 출력 구분.
+
+3. 스캔 결과 검증 및 색상 표시
+  입력된 SN이 DataGridView1 또는 DataGridView2에 존재하는 경우, 해당 행의 셀 녹색으로 표시.
+
+4. 전체 스캔 완료 여부 확인 (ResultAllScan)
+  모든 SN 셀이 비어있지 않아야 다음 단계 진행 가능.
+
+5. 검사 결과 로그 저장 (button1_Click)
+  tb_ccs_lot_log 테이블에 스캔 결과 저장 (PASS 처리).
+
+6. 검사 이력 조회 및 확인 (button3_Click, dgvReport_CellClick)
+  특정 기간 동안의 검사 이력을 조회하고, 선택된 로그의 세부 내용을 확인.
+
+7. 초기화 버튼 (button2_Click)
+  입력값과 DataGridView 초기화.
