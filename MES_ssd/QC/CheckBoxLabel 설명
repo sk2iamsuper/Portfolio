@@ -2,9 +2,8 @@
 오퍼레이터가 바코드 스캐너로 소박스나 대박스를 스캔하면, 라벨 이미지가 보여지고,
 SN 및 라벨 정보가 매핑되어 자동으로 판별, 결과가 DB에 저장됨 → 검수 이력 관리 가능.
 
+
 ## 프로그램 설명
-
-
 1.라벨 이미지 로딩 (frmBoxLabelCheck_Load)
 tb_ssd_std_program 테이블에서 라벨 이미지 (program 컬럼, BLOB)를 읽어 PictureBox에 표시.
 
