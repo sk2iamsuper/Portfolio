@@ -1,0 +1,112 @@
+📝 메시지 처리설명
+1. 초기화 과정
+  Start() 호출 → HSMS 연결 시도 → 장비에서 S1F13 보내면 S1F14 응답.
+  알람 보고(S5F3) 처리 후 상태를 INITIALIZED로 전환.
+2. 런타임 처리
+  장비에서 Remote Command (S2F41) → 응답(S2F42) 후 _rcmdResponseTcs 완료.
+  데이터 메시지(S14F3) → 응답(S14F4) 후 _dataResponseTcs 완료.
+  실패 사유(S10F3) → 이벤트 버스로 알림 전달.
+3. 호스트 전송
+  SendMessageAsync(S6F11) → 이벤트 리포트 송신.
+  장비 응답(S6F12) 수신 후, Response 객체 반환.
+4. 종료
+StopAsync() 호출 시 → 취소 토큰 발행 → Listener 루프 종료 → 연결 해제.
+
+
+======
+코드 설명
+
+
+### 1. 클래스 구조
+
+* `SecsGemServer`는 **SECS/GEM 통신 서버 역할**을 수행.
+* 자원 관리를 위해 `IDisposable`, `IAsyncDisposable` 둘 다 구현 →
+  동기/비동기 환경 모두에서 안전하게 Dispose 가능.
+
+---
+
+### 2. 필드와 상태 관리
+
+* `Logger` → `NLog` 기반 로깅.
+* `_cts (CancellationTokenSource)` → Start/Stop 시점마다 새로 생성, 취소 토큰 관리.
+* `_listenerTask` → 수신 메시지 루프 실행을 위한 Task.
+* `_connector`, `_secsGem` → HSMS 연결 객체 및 SecsGem 핵심 객체.
+* `_rcmdResponseTcs`, `_dataResponseTcs` → 장비 응답을 기다릴 때 사용하는 **비동기 신호기** (`TaskCompletionSource`).
+* `SecsGemStatus` → 서버 상태 (LOAD, CONNECTING, INITIALIZED 등).
+
+
+
+---
+
+### 3. Start / Stop 흐름
+
+* `Start`:
+
+  * `SecsGemOptions` 설정 (`Active/Passive`, IP, 포트, 버퍼, Device ID 등).
+  * `_connector` 생성 후 `ConnectionChanged` 이벤트 등록.
+  * `_secsGem` 생성 및 연결 시작.
+  * 메시지 수신 루프 `_listenerTask` 시작.
+  * 상태를 `CONNECTING`으로 변경.
+
+* `Stop`:
+
+  * `_cts.Cancel()`로 루프 취소.
+  * `_listenerTask` 종료 대기.
+  * `_connector.DisposeAsync()`, `_secsGem.Dispose()`로 정리.
+  * 이벤트 핸들러 해제, `TaskCompletionSource` 정리.
+  * 상태를 `LOAD`로 초기화.
+
+➡️ **개선 포인트:**
+기존에는 `_cts.Dispose()` 후 재사용 시 문제가 발생할 수 있었음.
+리팩터링 후에는 Stop 시점에만 Dispose → Start 시 새로 생성.
+
+---
+
+### 4. Listener 루프 (`ListenLoopAsync`)
+
+* `_secsGem.GetPrimaryMessageAsync(ct)`로 **들어오는 Primary Message를 비동기 스트리밍**으로 수신.
+* 메시지 `S/F` 코드에 따라 분기 처리:
+
+  * `S1F13`: Establish Communication → Reply 후 상태 `INITIALIZING`.
+  * `S5F3`: Alarm Report → Reply 후 상태 `INITIALIZED`.
+  * `S2F41`: Remote Command (RCMD) → Reply 후 `_rcmdResponseTcs` 완료.
+  * `S14F3`: Data Pass → Reply 후 `_dataResponseTcs` 완료.
+  * `S10F3`: Fail Reason → Reply 후 이벤트 버스로 `DisplayEvent` 게시.
+
+
+
+---
+
+### 5. SendMessageAsync
+
+```csharp
+public async Task<Response> SendMessageAsync(S6F11 message, bool needToResponse = false, int timeoutSeconds = 30)
+```
+
+* Primary Message 전송 → `_secsGem.SendAsync(...)`.
+* **응답 대기 방식:**
+
+  * `needToResponse == true` → `_rcmdResponseTcs` 대기.
+  * `needToResponse == false` → `_dataResponseTcs` 대기.
+* `Task.WhenAny`로 타임아웃 처리.
+* 결과를 `Response` 객체로 반환.
+
+
+
+---
+
+### 6. Dispose / DisposeAsync
+
+* `Dispose`:
+
+  * 동기 Stop 호출.
+  * `_secsGem.Dispose()`, `_connector = null`, `TaskCompletionSource` 정리.
+* `DisposeAsync`:
+
+  * `StopAsync` 호출 후 로거 Dispose.
+
+
+
+---
+
+
