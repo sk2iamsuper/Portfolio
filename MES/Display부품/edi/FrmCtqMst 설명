@@ -1,0 +1,11 @@
+| 구분     | 내용                                                                                      |
+| ------ | --------------------------------------------------------------------------------------- |
+| 클래스명   | `FrmCtqMst`                                                                             |
+| 상속     | `DevExpress.XtraEditors.XtraForm`                                                       |
+| 네임스페이스 | `SG_Module.Edi`                                                                         |
+| 역할     | CTQ 마스터 목록을 조회, 등록, 수정, 삭제하는 UI 화면                                                      |
+| 관련 폼   | `FrmCtqMstReg` (CTQ 등록/수정용 서브 폼)                                                        |
+| DB 연동  | `SP_CU_CTQMST_SELECT`, `SP_CU_CTQMST_DELETE`                                            |
+| 주요 유틸  | `DevGridUtil`, `DatabaseUtil`, `LanguageUtil`, `GlobalUtil`, `CodeUtil`, `WaitFormUtil` |
+
+
