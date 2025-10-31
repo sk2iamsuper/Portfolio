@@ -1,3 +1,4 @@
+ 1. 전체 구조 요약
 | 구분     | 내용                                                                                      |
 | ------ | --------------------------------------------------------------------------------------- |
 | 클래스명   | `FrmCtqMst`                                                                             |
@@ -8,4 +9,60 @@
 | DB 연동  | `SP_CU_CTQMST_SELECT`, `SP_CU_CTQMST_DELETE`                                            |
 | 주요 유틸  | `DevGridUtil`, `DatabaseUtil`, `LanguageUtil`, `GlobalUtil`, `CodeUtil`, `WaitFormUtil` |
 
+
+ 2. 주요 기능 흐름
+(1) 폼 로드
+  private void FrmCtqMst_Load(object sender, EventArgs e)
+  {
+      InitializeForm();   
+  }
+  폼이 실행될 때 InitializeForm()을 호출하여 내부 UI 초기화 수행.
+
+(2) 초기화 로직 (InitializeForm, InitializeControl)
+  lblTitle.Text = this.Text;
+  InitializeGrid1();
+  InitialzeLang();
+  - InitializeGrid1()
+  → DevGridUtil을 이용하여 gridView1 컬럼 구조 정의
+  CTQ 번호, 항목명, 단위, 등록자, 등록일, 수정자, 수정일 등 필드 구성
+  - InitialzeLang()
+  → 다국어 처리 (언어 설정이 KO가 아닐 경우)
+  LanguageUtil.BindTableCellText()로 각 UI 컨트롤과 Grid의 Text를 언어 리소스에서 불러옴
+  버튼, 라벨, ContextMenu 텍스트 교체
+  폰트 스케일 조정
+
+(3) 버튼 이벤트
+  🔍 조회 버튼 (btnSearch)
+  private void btnSearch_Click(object sender, EventArgs e)
+  {
+      fnSearch();
+  }
+  💾 엑셀 버튼 (btnExcel)
+  DevGridUtil.Instance.Export2(gridView1, "EDI-CTQ LIST");
+  → Grid 데이터를 엑셀로 내보냄.
+
+(4) 컨텍스트 메뉴 이벤트
+  🆕 CTQ 등록 (cmsCtqReg_Click)
+  FrmCtqMstReg 새창으로 열고 strDiv = "N" (New)
+  등록 완료 후 DialogResult.OK이면 다시 조회 수행
+  ✏️ CTQ 수정 (cmsCtqEdit_Click)
+  현재 선택된 Row에서 CtqNo, CtqName, CtqUnit을 가져와 FrmCtqMstReg로 전달
+  strDiv = "E" (Edit)
+  수정 후 성공 시 fnSearch() 재호출
+  ❌ CTQ 삭제 (cmsCtqDelete_Click)
+  선택 Row의 CtqNo, CtqName 확인
+  메시지 박스로 사용자에게 삭제 확인
+  확인 시 DB SP 호출:
+  SP_CU_CTQMST_DELETE
+  결과 확인 후 정상이라면 gridView1.DeleteSelectedRows() 수행
+
+(5) 조회 함수 (fnSearch)
+  string strSpName = "SP_CU_CTQMST_SELECT";
+  SqlParameter[] bind = new SqlParameter[1];
+  bind[0] = new SqlParameter("CtqName", txtName.Text.Trim());
+  DataTable dt = DatabaseUtil.Instance.ExecuteSP(strSpName, bind);
+  txtName에 입력된 CTQ명으로 검색
+  DB 결과를 gridControl1.DataSource에 바인딩
+  로딩 중에는 WaitFormUtil로 로딩 화면 표시
+  결과가 없으면 빈 DataTable 바인딩
 
