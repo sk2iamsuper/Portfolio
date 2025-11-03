@@ -2,6 +2,16 @@
 Thread 기반 통신 루프를 통해 PLC의 Alive, Trigger, Reset 신호를 실시간 감시하고, 비전 검사 결과(Angle, QR Code)를 PLC로 자동 전송하도록 구성하였습니다.
 UI에서는 각 신호의 상태를 실시간으로 시각화하여 장비 상태를 직관적으로 모니터링할 수 있습니다."
 
+프로젝트명
+ReelTW – mlcc등 릴 자재 자동입고 장비
+
+
+🔹 기술 스택
+언어: C# (.NET Framework)
+UI: WinForms + DevExpress
+통신 방식: Mitsubishi Melsec PLC TCP/IP (Q/L 시리즈 대응)
+기타: Thread 기반 I/O 루프, PLC Register Read/Write, 비전 카메라 Trigger 제어
+
   기술 포인트 정리
 PLC 통신 구조 설계 (TCP/IP Socket)
 실시간 I/O 데이터 처리 (비동기 루프)
