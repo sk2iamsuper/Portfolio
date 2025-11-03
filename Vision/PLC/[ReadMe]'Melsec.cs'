@@ -1,0 +1,26 @@
+미쓰비시 PLC(Melsec) 와 통신하는 C# WinForms 기반 사용자 제어(UserControl) 을 구현한 예시
+
+프로젝트 개요
+  프로젝트명: Melsec PLC 통신 모듈 (C# WinForms 기반 MES 인터페이스)
+  개발 언어: C# (.NET Framework)
+  UI 라이브러리: DevExpress WinForms
+  주요 목적: 생산 설비(PLC)와 MES(Manufacturing Execution System) 간의 데이터 송수신을 담당하는 사용자 제어 모듈을 개발하여, 설비 상태 모니터링 및 생산 제어 자동화를 구현.
+
+| 구분             | 기능 설명                                                    |
+| -------------- | -------------------------------------------------------- |
+| PLC 연결 관리      | TCP/IP 기반 미쓰비시 PLC 통신 (Melsec Q/L 시리즈)                   |
+| 실시간 데이터 인터페이스  | PLC 메모리 주소의 실시간 값 읽기/쓰기                                  |
+| 작업자 입력 UI      | 비밀번호 및 생산값 입력용 Number Pad 폼 (`Form_NumberPad`)           |
+| 비동기 Task 기반 통신 | 백그라운드 쓰레드 대신 `Task`와 `CancellationToken`으로 안정적인 통신 루프 구현 |
+| 오류 및 예외 처리     | 통신 오류 발생 시 자동 재시도 및 로그 관리                                |
+| MV 구조화         | UI 로직(Form)과 비즈니스 로직(PLCProcess) 분리, 유지보수성 향상            |
+
+    
+  “Melsec PLC와 MES 간의 실시간 데이터 인터페이스 모듈을 C# WinForms로 구현하였습니다. 
+  기존 동기식 루프 구조를 비동기 Task 기반으로 리팩토링하여 안정성과 응답성을 개선하였으며, UI 로직과 통신 로직을 분리하여 유지보수성과 확장성을 확보하였습니다.”
+
+기술적 특징
+  Melsec Protocol Handling: Q/L 시리즈용 Binary Communication Frame 지원
+  Thread-safe UI Update: InvokeRequired 검증 후 UI 접근
+  DevExpress Grid Control 연동: 실시간 데이터 모니터링 가능
+  PLC → MES → DB 연동 확장성 고려
