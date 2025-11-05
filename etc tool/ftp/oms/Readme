@@ -1,2 +1,15 @@
-OMS is edi
+OMS is edi system
 
+tcp_socket/
+│
+├── Main.cs               ← UI (WinForm)
+│
+├── Services/
+│   ├── FtpService.cs      ← FTP 업로드/다운로드, 파일 존재확인 등
+│   ├── TcpService.cs      ← TCP 연결, 송수신
+│   ├── FileService.cs     ← 로컬 파일 이동, 백업, 폴더 생성
+│   ├── DbService.cs       ← MySQL 연결, 쿼리 실행
+│   └── WipParser.cs       ← WIP 구조체 파싱/변환
+│
+└── Models/
+    └── CMWipInf.cs        ← 구조체 및 데이터 모델
