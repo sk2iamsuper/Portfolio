@@ -11,7 +11,7 @@ using tcp_socket.Models;
 
 namespace tcp_socket
 {
-    public partial class Form1 : Form
+    public partial class Main : Form
     {
         // Settings and services
         private readonly FtpService _ftp;
@@ -23,7 +23,7 @@ namespace tcp_socket
         // Socket kept for compatibility with original UI
         private Socket _socket;
 
-        public Form1()
+        public Main()
         {
             InitializeComponent();
 
@@ -232,7 +232,7 @@ namespace tcp_socket
         }
 
         // Clean up on form closing
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             timer1_1?.Stop();
             _dbService?.Dispose();
