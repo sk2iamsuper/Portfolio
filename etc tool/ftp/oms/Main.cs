@@ -10,6 +10,7 @@ using tcp_socket.Models;
 
 var files = Directory.GetFiles(folderBackup, "*.*");
 
+
 foreach (var file in files)
   {
   var name = Path.GetFileName(file);
