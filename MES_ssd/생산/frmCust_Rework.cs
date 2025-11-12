@@ -1088,7 +1088,7 @@ namespace mes_
             string lotId = !string.IsNullOrEmpty(txtZaLotID.Text) ? txtZaLotID.Text : txtLotID_T2.Text;
             var labelData = lib.Helpers.DBSearchHelper.LotCardBarcodePrint(_connection, lotId);
             
-            if (frmMain.user_ID == "PHS")
+            if (frmMain.user_ID == "admin")
             {
                 MessageBox.Show(labelData);
             }
