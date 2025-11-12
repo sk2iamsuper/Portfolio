@@ -51,7 +51,7 @@ namespace mes_
         /// 생성자 - 데이터베이스 연결을 주입받습니다.
         /// </summary>
         /// <param name="connection">MySQL 데이터베이스 연결</param>
-        public frmSEC_Rework(MySqlConnection connection)
+        public frmCust_Rework(MySqlConnection connection)
         {
             InitializeComponent();
             _connection = connection ?? throw new ArgumentNullException(nameof(connection));
@@ -61,7 +61,7 @@ namespace mes_
         /// <summary>
         /// 폼 로드 시 초기화 작업 수행
         /// </summary>
-        private void frmSEC_Rework_Load(object sender, EventArgs e)
+        private void frmCust_Rework_Load(object sender, EventArgs e)
         {
             InitializeBarcodePrinter();
             LoadReworkList();
