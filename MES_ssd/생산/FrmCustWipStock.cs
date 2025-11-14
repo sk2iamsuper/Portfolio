@@ -18,7 +18,7 @@ using DevExpress.XtraGrid.Views.Grid;
 using System.Collections;
 #endregion namespace
 
-namespace SG_Module.CustPop
+namespace Module.CustPop
 {
     /// <summary>
     /// 고객별 재고 현황 조회 폼
