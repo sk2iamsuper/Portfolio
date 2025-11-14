@@ -276,34 +276,89 @@ namespace mes_
         /// 구성품 리스트를 받아 tb_in_wafer_info에서 전체를 한 번에 조회해 결과 DataTable 반환
         /// (기존 반복 쿼리 대신 IN절 사용)
         /// </summary>
-        private async Task<DataTable> LoadInventoryBulkAsync(List<string> compCodes)
+                
+       private async Task<DataTable> LoadInventoryBulkAsync(List<string> compCodes)
         {
-            // compCodes 가 비어있으면 빈 테이블 반환
             var dtEmpty = new DataTable();
-            if (compCodes == null || compCodes.Count == 0) return dtEmpty;
-
-            // prod_code like 'comp%' 조건을 OR로 묶는 형태로 단일 쿼리 실행
-            // 성능을 위해 Prepared LIKE 조건을 여러 파라미터로 추가
-            var whereClauses = new List<string>();
-            var parameters = new List<MySqlParameter>();
-            for (int i = 0; i < compCodes.Count; i++)
+        
+            // ===== 로그 : 입력값 =====
+            Logger.Info($"[LoadInventoryBulkAsync] Start - compCodes: {string.Join(",", compCodes ?? new List<string>())}");
+        
+            if (compCodes == null || compCodes.Count == 0)
             {
-                string pName = $"@p{i}";
-                whereClauses.Add($"i.prod_code LIKE {pName}");
-                parameters.Add(new MySqlParameter(pName, compCodes[i] + "%"));
+                Logger.Warn("[LoadInventoryBulkAsync] compCodes is empty. Returning empty DataTable.");
+                return dtEmpty;
             }
-
-            var sql = $@"
-                SELECT i.prod_code, i.sale_option, SUM(i.inventory) AS inventory_sum, i.fab_line, i.lot_type,
-                       (SELECT lot_id FROM tb_in_wafer_info WHERE prod_code = i.prod_code AND flag IS NULL AND sample = 'N' AND inventory != 0 ORDER BY work_week LIMIT 1) AS lot_id,
-                       (SELECT work_week FROM tb_in_wafer_info WHERE prod_code = i.prod_code AND flag IS NULL AND sample = 'N' AND inventory != 0 ORDER BY work_week LIMIT 1) AS work_week
-                FROM tb_in_wafer_info i
-                WHERE (" + string.Join(" OR ", whereClauses) + @") AND flag IS NULL AND sample = 'N' AND inventory != 0
-                GROUP BY i.prod_code, i.sale_option, i.fab_line, i.lot_type
-                ORDER BY i.prod_code, i.sale_option";
-            var dt = await ExecuteDataTableAsync(sql, parameters.ToArray());
-            return dt;
+        
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+        
+            try
+            {
+                // IN 절 파라미터 준비
+                var parameters = new List<MySqlParameter>();
+                var inParams = new List<string>();
+        
+                for (int i = 0; i < compCodes.Count; i++)
+                {
+                    string pName = $"@p{i}";
+                    inParams.Add(pName);
+                    parameters.Add(new MySqlParameter(pName, compCodes[i]));
+                }
+        
+                var sql = $@"
+                    SELECT 
+                        i.prod_code, 
+                        i.sale_option, 
+                        SUM(i.inventory) AS inventory_sum, 
+                        i.fab_line, 
+                        i.lot_type,
+                        (SELECT lot_id 
+                         FROM tb_in_wafer_info 
+                         WHERE prod_code = i.prod_code 
+                           AND flag IS NULL 
+                           AND sample = 'N' 
+                           AND inventory != 0 
+                         ORDER BY work_week 
+                         LIMIT 1) AS lot_id,
+                        (SELECT work_week 
+                         FROM tb_in_wafer_info 
+                         WHERE prod_code = i.prod_code 
+                           AND flag IS NULL 
+                           AND sample = 'N' 
+                           AND inventory != 0 
+                         ORDER BY work_week 
+                         LIMIT 1) AS work_week
+                    FROM tb_in_wafer_info i
+                    WHERE LEFT(i.prod_code, 3) IN ({string.Join(", ", inParams)})
+                      AND flag IS NULL 
+                      AND sample = 'N' 
+                      AND inventory != 0
+                    GROUP BY 
+                        i.prod_code, i.sale_option, 
+                        i.fab_line, i.lot_type
+                    ORDER BY i.prod_code, i.sale_option
+                ";
+        
+                // ===== 로그 : SQL & 파라미터 =====
+                Logger.Debug($"[LoadInventoryBulkAsync] SQL: {sql}");
+                Logger.Debug($"[LoadInventoryBulkAsync] Parameters: {string.Join(", ", parameters.Select(p => $"{p.ParameterName}={p.Value}"))}");
+        
+                // DB 실행
+                var dt = await ExecuteDataTableAsync(sql, parameters.ToArray());
+        
+                sw.Stop();
+                Logger.Info($"[LoadInventoryBulkAsync] Completed in {sw.ElapsedMilliseconds} ms. RowCount={dt.Rows.Count}");
+        
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                Logger.Error($"[LoadInventoryBulkAsync] Exception after {sw.ElapsedMilliseconds} ms: {ex.Message}", ex);
+                throw; // 예외를 호출측으로 전달
+            }
         }
+
 
         /// <summary>
         /// inventory DataTable을 받아 dataGridView1에 추가하고 색상/예외 처리 수행
