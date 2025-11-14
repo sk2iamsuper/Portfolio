@@ -23,7 +23,7 @@ namespace mes_
 
         private async void frm모듈BOM_Load(object sender, EventArgs e)
         {
-            if (frmMain.dbsite.Contains("VPV"))
+            if (frmMain.dbsite.Contains("VN"))
                 txtFabinfo.Text = "* FAB Info.  M (M/L), S (P/B)";
 
             // 비동기 초기 로드
