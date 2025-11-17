@@ -11,6 +11,7 @@ using Renci.SshNet.Sftp;
 
 /*
 스마트 백업 : 3개월 이상된 db 서버 데이터 자동 백업(low cost storage로 백업) 후 삭제
+주기 : 매일 2회
 보안 : SSH, SFTP 연결
 */
 
