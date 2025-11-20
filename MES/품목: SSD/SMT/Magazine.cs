@@ -277,8 +277,7 @@ namespace ITS
         private void txtT4Slot1_DoubleClick(object sender, EventArgs e)
         {
             // 권한 체크 - 특정 사용자만 슬롯 상태 변경 가능
-            if (frmMain.user_ID.ToUpper() != "PHS" && frmMain.user_ID.ToUpper() != "LUAN_IT" && frmMain.user_ID.ToUpper() != "HDLEE"
-                && frmMain.user_ID.ToUpper() != "VO_KT" && frmMain.user_ID.ToUpper() != "DIEP KT" && frmMain.user_ID.ToUpper() != "HUNG" && frmMain.user_ID.ToUpper() != "DUC KT")
+            if (frmMain.user_ID.ToUpper() != "admin" )
             {
                 MessageBox.Show("You do not have permission to do this.");
                 return;
