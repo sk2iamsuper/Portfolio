@@ -13,235 +13,123 @@ namespace SecsGemManager.Form;
 /// 3. 검사 결과 데이터 파싱 및 SECS/GEM 메시지 전송
 /// 4. MySQL 데이터베이스에 검사 결과 저장
 /// </summary>
-public class FormPAOI : FormBase
+
+public class PaoiFileProcessor : IDisposable
 {
-    #region 상수 정의
-    /// <summary>정상 운영 모드 명령 (0x03)</summary>
-    private const byte CMD_NORMAL = 0x03;
-    
-    /// <summary>정지 모드 명령 (0x00)</summary>
-    private const byte CMD_STOP = 0x00;
-    
-    /// <summary>파일 사용 대기 최대 시간 (밀리초)</summary>
+    #region 상수
     private const int FILE_WAIT_TIMEOUT_MS = 10000;
-    
-    /// <summary>파일 사용 대기 간격 (밀리초)</summary>
     private const int FILE_WAIT_INTERVAL_MS = 100;
+    private const int MAX_RETRY_ATTEMPTS = 3;
+    private const int RETRY_DELAY_MS = 1000;
     #endregion
 
-    #region 필드 선언
-    /// <summary>P-AOI 장비 정지/재개 제어용 시리얼 포트</summary>
-    private readonly SerialPort? _stopHandlerSerialPort = new();
-    
-    /// <summary>처리 완료된 파일 백업 디렉토리</summary>
-    private DirectoryInfo _backupDirectory;
-    
-    /// <summary>검사 결과 파일 모니터링용 파일 시스템 감시자</summary>
-    private FileSystemWatcher? _fileSystemWatcher;
-    
-    /// <summary>시리얼 포트 쓰기 작업 동기화 객체</summary>
-    private readonly object _serialPortLock = new();
+    #region 필드
+    private readonly DirectoryInfo _backupDirectory;
+    private readonly string _monitoringPath;
+    private readonly string _eqpId;
+    private readonly ISecsGemServer _server;
+    private readonly string _mysqlConnectionString;
+    private FileSystemWatcher? _fileWatcher;
+    private readonly IPaoiFileEventHandler _eventHandler;
+    private readonly ILogger _logger;
+    private bool _isDisposed;
     #endregion
 
-    #region 이벤트 핸들러
-    /// <summary>
-    /// 폼 로드 시 초기화 작업 수행
-    /// </summary>
-    /// <param name="sender">이벤트 발생 객체</param>
-    /// <param name="e">이벤트 인자</param>
-    public override void FormBase_Load(object sender, EventArgs e)
-    {
-        try
-        {
-            // 부모 클래스의 초기화 작업 수행
-            base.FormBase_Load(sender, e);
-            
-            // 백업 디렉토리 설정 및 생성
-            InitializeBackupDirectory();
-            
-            // 파일 시스템 감시자 설정
-            InitializeFileSystemWatcher();
-            
-            // 시리얼 포트 초기화 및 열기
-            InitializeSerialPort();
-            
-            // 장비 초기화 (정상 모드 설정)
-            Reset();
-            
-            LOGGER.Info("FormPAOI 초기화 완료");
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"FormPAOI 초기화 실패: {ex.Message}", ex);
-            MessageBox.Show($"폼 초기화 중 오류가 발생했습니다: {ex.Message}", 
-                          "초기화 오류", 
-                          MessageBoxButtons.OK, 
-                          MessageBoxIcon.Error);
-            throw; // 상위 호출자에게 예외 전파
-        }
-    }
+    #region 이벤트
+    /// <summary>파일 처리 시작 시 발생</summary>
+    public event EventHandler<FileProcessingStartedEventArgs>? FileProcessingStarted;
     
-    /// <summary>
-    /// 폼 닫힘 시 리소스 정리 작업 수행
-    /// </summary>
-    /// <param name="sender">이벤트 발생 객체</param>
-    /// <param name="e">폼 닫힘 이벤트 인자</param>
-    protected override void FormBase_FormClosing(object sender, FormClosingEventArgs e)
-    {
-        try
-        {
-            // 부모 클래스의 정리 작업 수행
-            base.FormBase_FormClosing(sender, e);
-            
-            if (!e.Cancel)
-            {
-                LOGGER.Info("FormPAOI 종료 작업 시작");
-                
-                // 장비 정지 명령 전송
-                StopWork();
-                
-                // 파일 시스템 감시자 중지
-                CleanupFileSystemWatcher();
-                
-                // 시리얼 포트 닫기
-                CleanupSerialPort();
-                
-                LOGGER.Info("FormPAOI 종료 작업 완료");
-            }
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"FormPAOI 종료 중 오류: {ex.Message}", ex);
-            // 예외 발생 시에도 계속 정리 작업 수행
-        }
-    }
+    /// <summary>파일 처리 완료 시 발생</summary>
+    public event EventHandler<FileProcessingCompletedEventArgs>? FileProcessingCompleted;
     
+    /// <summary>파일 처리 실패 시 발생</summary>
+    public event EventHandler<FileProcessingFailedEventArgs>? FileProcessingFailed;
+    #endregion
+
+    #region 생성자
     /// <summary>
-    /// 파일 생성 이벤트 핸들러
-    /// 새 검사 결과 파일이 생성되면 자동으로 처리
+    /// PaoiFileProcessor 생성자
     /// </summary>
-    /// <param name="sender">이벤트 발생 객체</param>
-    /// <param name="e">파일 시스템 이벤트 인자</param>
-    private void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
+    public PaoiFileProcessor(
+        string monitoringPath,
+        string backupPath,
+        string eqpId,
+        ISecsGemServer server,
+        string mysqlConnectionString,
+        IPaoiFileEventHandler? eventHandler = null,
+        ILogger? logger = null)
     {
-        // 폼이 준비 상태가 아닌 경우 처리 건너뜀
-        if (!IsReady) 
-        {
-            LOGGER.Debug($"폼이 준비되지 않아 파일 처리 건너뜀: {e.FullPath}");
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(monitoringPath))
+            throw new ArgumentException("모니터링 경로는 필수입니다.", nameof(monitoringPath));
         
-        LOGGER.Info($"새 파일 생성 감지: {e.FullPath}");
+        if (string.IsNullOrWhiteSpace(backupPath))
+            throw new ArgumentException("백업 경로는 필수입니다.", nameof(backupPath));
+
+        _monitoringPath = monitoringPath;
+        _eqpId = eqpId ?? throw new ArgumentNullException(nameof(eqpId));
+        _server = server ?? throw new ArgumentNullException(nameof(server));
+        _mysqlConnectionString = mysqlConnectionString ?? 
+            throw new ArgumentNullException(nameof(mysqlConnectionString));
         
-        try
-        {
-            // 1. 파일 사용 가능 여부 대기
-            if (!WaitForFileRelease(e.FullPath))
-            {
-                LOGGER.Warn($"파일이 다른 프로세스에서 사용 중입니다: {e.FullPath}");
-                return;
-            }
-            
-            // 2. 파일 파싱 및 데이터 처리
-            ProcessPaoiFile(e.FullPath, e.Name);
-            
-            LOGGER.Info($"파일 처리 완료: {e.FullPath}");
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"파일 처리 중 오류 발생: {e.FullPath}", ex);
-            // 파일 처리 실패 시 장비 정지
-            StopWork();
-        }
-    }
-    
-    /// <summary>
-    /// 디스플레이 이벤트 핸들러
-    /// 화면 표시 시 장비 정지
-    /// </summary>
-    /// <param name="e">디스플레이 이벤트</param>
-    [EventSubscriber]
-    public override void OnDisplay(DisplayEvent e)
-    {
-        LOGGER.Info("디스플레이 이벤트 수신, 장비 정지");
-        StopWork();
-        base.OnDisplay(e);
+        _backupDirectory = InitializeBackupDirectory(backupPath);
+        _eventHandler = eventHandler ?? new DefaultPaoiFileEventHandler();
+        _logger = logger ?? new NullLogger();
+        
+        InitializeFileSystemWatcher();
     }
     #endregion
 
     #region 공개 메서드
     /// <summary>
-    /// P-AOI 장비 초기화 (정상 모드 설정)
+    /// 파일 처리기 시작
     /// </summary>
-    public override void Reset()
+    public void Start()
     {
-        try
+        if (_fileWatcher != null && !_fileWatcher.EnableRaisingEvents)
         {
-            LOGGER.Info("P-AOI 장비 초기화 시작");
-            SendMessageToSerialPort(CMD_NORMAL);
-            base.Reset();
-            LOGGER.Info("P-AOI 장비 초기화 완료");
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"P-AOI 장비 초기화 실패: {ex.Message}", ex);
-            throw;
+            _fileWatcher.EnableRaisingEvents = true;
+            _logger.Info($"파일 처리기 시작: {_monitoringPath}");
         }
     }
-    
+
     /// <summary>
-    /// P-AOI 장비 정지 명령 전송
+    /// 파일 처리기 중지
     /// </summary>
-    public void StopWork()
+    public void Stop()
     {
-        try
+        if (_fileWatcher != null && _fileWatcher.EnableRaisingEvents)
         {
-            LOGGER.Info("P-AOI 장비 정지 명령 전송");
-            SendMessageToSerialPort(CMD_STOP);
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"P-AOI 장비 정지 명령 전송 실패: {ex.Message}", ex);
-            throw;
+            _fileWatcher.EnableRaisingEvents = false;
+            _logger.Info("파일 처리기 중지");
         }
     }
+
+    /// <summary>
+    /// 특정 파일 수동 처리
+    /// </summary>
+    public ProcessingResult ProcessFileManually(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            _logger.Warn($"파일이 존재하지 않습니다: {filePath}");
+            return ProcessingResult.FileNotFound;
+        }
+
+        return ProcessFileInternal(filePath, Path.GetFileName(filePath), isManual: true);
+    }
+
+    /// <summary>
+    /// 현재 모니터링 중인 경로 반환
+    /// </summary>
+    public string GetMonitoringPath() => _monitoringPath;
+
+    /// <summary>
+    /// 현재 백업 디렉토리 반환
+    /// </summary>
+    public string GetBackupDirectoryPath() => _backupDirectory.FullName;
     #endregion
 
     #region 비공개 메서드
-    /// <summary>
-    /// 백업 디렉토리 초기화
-    /// </summary>
-    private void InitializeBackupDirectory()
-    {
-        try
-        {
-            string backupPath = Program.Configuration["PAOI"]["LOG_BACKUP_PATH"].StringValue;
-            
-            if (string.IsNullOrWhiteSpace(backupPath))
-            {
-                LOGGER.Warn("백업 디렉토리 경로가 설정되지 않았습니다.");
-                return;
-            }
-            
-            _backupDirectory = new DirectoryInfo(backupPath);
-            
-            if (!_backupDirectory.Exists)
-            {
-                LOGGER.Info($"백업 디렉토리 생성: {backupPath}");
-                _backupDirectory.Create();
-            }
-            else
-            {
-                LOGGER.Debug($"백업 디렉토리 사용: {backupPath}");
-            }
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"백업 디렉토리 초기화 실패: {ex.Message}", ex);
-            throw;
-        }
-    }
-    
     /// <summary>
     /// 파일 시스템 감시자 초기화
     /// </summary>
@@ -249,285 +137,534 @@ public class FormPAOI : FormBase
     {
         try
         {
-            string monitorPath = Program.Configuration["PAOI"]["MONITORING_PATH"].StringValue;
-            
-            if (string.IsNullOrWhiteSpace(monitorPath))
+            if (!Directory.Exists(_monitoringPath))
             {
-                throw new InvalidOperationException("모니터링 경로가 설정되지 않았습니다.");
+                _logger.Warn($"모니터링 경로가 존재하지 않아 생성합니다: {_monitoringPath}");
+                Directory.CreateDirectory(_monitoringPath);
             }
-            
-            if (!Directory.Exists(monitorPath))
+
+            _fileWatcher = new FileSystemWatcher(_monitoringPath)
             {
-                throw new DirectoryNotFoundException($"모니터링 경로가 존재하지 않습니다: {monitorPath}");
-            }
-            
-            _fileSystemWatcher = new FileSystemWatcher(monitorPath)
-            {
-                Filter = "*.txt",                    // .txt 파일만 감시
-                IncludeSubdirectories = true,        // 하위 디렉토리 포함
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
-                EnableRaisingEvents = true           // 이벤트 활성화
+                Filter = "*.txt",
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime | NotifyFilters.LastWrite,
+                EnableRaisingEvents = true
             };
-            
-            _fileSystemWatcher.Created += FileSystemWatcher_Created;
-            
-            LOGGER.Info($"파일 시스템 감시자 초기화 완료: {monitorPath}");
+
+            // 이벤트 핸들러 등록
+            _fileWatcher.Created += OnFileCreated;
+            _fileWatcher.Changed += OnFileChanged;
+            _fileWatcher.Error += OnFileWatcherError;
+
+            _logger.Info($"파일 시스템 감시자 초기화 완료: {_monitoringPath}");
         }
         catch (Exception ex)
         {
-            LOGGER.Error($"파일 시스템 감시자 초기화 실패: {ex.Message}", ex);
+            _logger.Error($"파일 시스템 감시자 초기화 실패: {ex.Message}", ex);
             throw;
         }
     }
-    
+
     /// <summary>
-    /// 시리얼 포트 초기화 및 연결
+    /// 백업 디렉토리 초기화
     /// </summary>
-    private void InitializeSerialPort()
+    private DirectoryInfo InitializeBackupDirectory(string backupPath)
     {
         try
         {
-            string portName = Program.Configuration["PAOI"]["STOP_HANDLER_PORT"].StringValue;
+            var directory = new DirectoryInfo(backupPath);
             
-            if (string.IsNullOrWhiteSpace(portName))
+            if (!directory.Exists)
             {
-                throw new InvalidOperationException("시리얼 포트 이름이 설정되지 않았습니다.");
+                _logger.Info($"백업 디렉토리 생성: {backupPath}");
+                directory.Create();
             }
             
-            _stopHandlerSerialPort.PortName = portName;
-            _stopHandlerSerialPort.BaudRate = 9600;          // 통신 속도
-            _stopHandlerSerialPort.Parity = Parity.None;     // 패리티 비트 없음
-            _stopHandlerSerialPort.DataBits = 8;             // 데이터 비트 8
-            _stopHandlerSerialPort.StopBits = StopBits.One;  // 정지 비트 1
-            _stopHandlerSerialPort.ReadTimeout = 500;        // 읽기 타임아웃 500ms
-            _stopHandlerSerialPort.WriteTimeout = 500;       // 쓰기 타임아웃 500ms
-            
-            _stopHandlerSerialPort.Open();
-            
-            LOGGER.Info($"시리얼 포트 연결 성공: {portName}");
+            return directory;
         }
         catch (Exception ex)
         {
-            LOGGER.Error($"시리얼 포트 연결 실패: {ex.Message}", ex);
-            MessageBox.Show($"시리얼 포트 연결 실패: {ex.Message}", 
-                          "통신 오류", 
-                          MessageBoxButtons.OK, 
-                          MessageBoxIcon.Error);
+            _logger.Error($"백업 디렉토리 초기화 실패: {ex.Message}", ex);
             throw;
         }
     }
-    
+
     /// <summary>
-    /// 파일 시스템 감시자 정리
+    /// 파일 생성 이벤트 핸들러
     /// </summary>
-    private void CleanupFileSystemWatcher()
+    private void OnFileCreated(object sender, FileSystemEventArgs e)
     {
-        try
-        {
-            if (_fileSystemWatcher != null)
-            {
-                _fileSystemWatcher.Created -= FileSystemWatcher_Created;
-                _fileSystemWatcher.EnableRaisingEvents = false;
-                _fileSystemWatcher.Dispose();
-                _fileSystemWatcher = null;
-                LOGGER.Info("파일 시스템 감시자 정리 완료");
-            }
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"파일 시스템 감시자 정리 실패: {ex.Message}", ex);
-        }
+        // 이벤트를 비동기로 처리하여 UI 블로킹 방지
+        Task.Run(() => ProcessFileAsync(e.FullPath, e.Name));
     }
-    
+
     /// <summary>
-    /// 시리얼 포트 정리
+    /// 파일 변경 이벤트 핸들러 (파일 쓰기 완료 확인용)
     /// </summary>
-    private void CleanupSerialPort()
+    private void OnFileChanged(object sender, FileSystemEventArgs e)
     {
-        try
-        {
-            if (_stopHandlerSerialPort != null && _stopHandlerSerialPort.IsOpen)
-            {
-                _stopHandlerSerialPort.Close();
-                _stopHandlerSerialPort.Dispose();
-                LOGGER.Info("시리얼 포트 정리 완료");
-            }
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"시리얼 포트 정리 실패: {ex.Message}", ex);
-        }
+        _logger.Debug($"파일 변경 감지: {e.FullPath}");
     }
-    
+
     /// <summary>
-    /// P-AOI 검사 결과 파일 처리
+    /// 파일 감시자 오류 이벤트 핸들러
     /// </summary>
-    /// <param name="filePath">처리할 파일 경로</param>
-    /// <param name="fileName">원본 파일 이름</param>
-    private void ProcessPaoiFile(string filePath, string fileName)
+    private void OnFileWatcherError(object sender, ErrorEventArgs e)
     {
-        // 1. 파일 파싱
-        var pFramemap = P_FRAMEMAP.Parse(filePath, EQP_ID);
+        var ex = e.GetException();
+        _logger.Error($"파일 시스템 감시자 오류: {ex.Message}", ex);
         
-        // 2. SECS/GEM 메시지 전송
-        _server.SendMessage(pFramemap);
-        
-        // 3. 데이터베이스에 검사 결과 저장
-        SaveToDatabase(pFramemap);
-        
-        // 4. 파일 정리 (백업 또는 삭제)
-        CleanupProcessedFile(filePath, fileName);
+        // 오류 발생 시 감시자 재시작
+        RestartFileWatcher();
     }
-    
+
     /// <summary>
-    /// MySQL 데이터베이스에 검사 결과 저장
-    /// SQL Injection 방지를 위한 파라미터화된 쿼리 사용
+    /// 파일 비동기 처리
     /// </summary>
-    /// <param name="pFramemap">파싱된 P-AOI 데이터</param>
-    private void SaveToDatabase(P_FRAMEMAP pFramemap)
+    private async Task ProcessFileAsync(string filePath, string fileName)
     {
         try
         {
-            // PCB 측면에 따른 컬럼명 결정
-            string type = pFramemap.pcbSide == "FRONT" ? "paoi_front" : "paoi_back";
-            
-            // 파라미터화된 쿼리로 SQL Injection 방지
-            string query = @"
-                INSERT INTO tb_mos_aoi_results (pcbserial, @type) 
-                VALUES (@pcbSerial, @mapInfo) 
-                ON DUPLICATE KEY UPDATE @type = @mapInfo";
-            
-            // 쿼리 파라미터화 (동적 컬럼명은 별도 처리 필요)
-            query = query.Replace("@type", type);
-            
-            var parameters = new[]
+            OnFileProcessingStarted(filePath, fileName);
+
+            var result = await Task.Run(() => 
+                ProcessFileInternal(filePath, fileName, isManual: false));
+
+            if (result == ProcessingResult.Success)
             {
-                new MySqlParameter("@pcbSerial", pFramemap.pcbSerial.Substring(1)),
-                new MySqlParameter("@mapInfo", pFramemap.pcbMapInfo)
-            };
-            
-            int affectedRows = MySqlHelper.ExecuteNonQuery(MYSQL_CONNECTION_STRING, query, parameters);
-            
-            LOGGER.Debug($"데이터베이스 저장 완료: {affectedRows} 행 영향 받음");
-        }
-        catch (MySqlException ex)
-        {
-            LOGGER.Error($"데이터베이스 저장 실패: {ex.Message}", ex);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            LOGGER.Error($"데이터베이스 저장 중 예외 발생: {ex.Message}", ex);
-            throw;
-        }
-    }
-    
-    /// <summary>
-    /// 처리 완료된 파일 정리 (백업 이동 또는 삭제)
-    /// </summary>
-    /// <param name="filePath">원본 파일 경로</param>
-    /// <param name="fileName">원본 파일 이름</param>
-    private void CleanupProcessedFile(string filePath, string fileName)
-    {
-        try
-        {
-            if (_backupDirectory != null && _backupDirectory.Exists)
-            {
-                // 백업 디렉토리로 파일 이동
-                string backupPath = Path.Combine(_backupDirectory.FullName, fileName);
-                File.Move(filePath, backupPath, true); // overwrite: true
-                LOGGER.Debug($"파일 백업 완료: {backupPath}");
+                OnFileProcessingCompleted(filePath, fileName);
             }
             else
             {
-                // 백업 디렉토리가 없으면 파일 삭제
-                File.Delete(filePath);
-                LOGGER.Debug($"파일 삭제 완료: {filePath}");
+                OnFileProcessingFailed(filePath, fileName, result);
             }
         }
         catch (Exception ex)
         {
-            LOGGER.Error($"파일 정리 실패: {filePath}", ex);
-            throw;
+            _logger.Error($"파일 처리 중 예외 발생: {filePath}", ex);
+            OnFileProcessingFailed(filePath, fileName, ProcessingResult.Exception, ex);
         }
     }
-    
+
     /// <summary>
-    /// 파일이 다른 프로세스에서 사용 중인지 확인하고 해제될 때까지 대기
+    /// 파일 처리 내부 로직
     /// </summary>
-    /// <param name="filePath">확인할 파일 경로</param>
-    /// <returns>파일 사용 가능 여부 (true: 사용 가능, false: 타임아웃)</returns>
-    private bool WaitForFileRelease(string filePath)
+    private ProcessingResult ProcessFileInternal(string filePath, string fileName, bool isManual)
     {
-        DateTime startTime = DateTime.Now;
+        try
+        {
+            _logger.Info($"파일 처리 시작: {filePath} (수동: {isManual})");
+
+            // 1. 파일 사용 가능 여부 확인 (재시도 로직 포함)
+            if (!WaitForFileReady(filePath))
+            {
+                _logger.Warn($"파일 사용 대기 시간 초과: {filePath}");
+                return ProcessingResult.FileLocked;
+            }
+
+            // 2. 파일 읽기 및 파싱
+            var pFramemap = ParsePaoiFileWithRetry(filePath);
+            if (pFramemap == null)
+            {
+                _logger.Error($"파일 파싱 실패: {filePath}");
+                return ProcessingResult.ParseFailed;
+            }
+
+            // 3. SECS/GEM 메시지 전송
+            SendSecsGemMessageWithRetry(pFramemap);
+
+            // 4. 데이터베이스 저장
+            SaveToDatabaseWithRetry(pFramemap);
+
+            // 5. 파일 정리
+            CleanupProcessedFile(filePath, fileName);
+
+            _logger.Info($"파일 처리 완료: {filePath}");
+            return ProcessingResult.Success;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"파일 처리 실패: {filePath}", ex);
+            return ProcessingResult.Exception;
+        }
+    }
+
+    /// <summary>
+    /// 재시도 로직을 포함한 파일 파싱
+    /// </summary>
+    private P_FRAMEMAP? ParsePaoiFileWithRetry(string filePath)
+    {
+        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++)
+        {
+            try
+            {
+                return P_FRAMEMAP.Parse(filePath, _eqpId);
+            }
+            catch (Exception ex) when (attempt < MAX_RETRY_ATTEMPTS)
+            {
+                _logger.Warn($"파일 파싱 시도 {attempt} 실패: {ex.Message}");
+                Thread.Sleep(RETRY_DELAY_MS);
+            }
+        }
+        
+        return null;
+    }
+
+    /// <summary>
+    /// 재시도 로직을 포함한 SECS/GEM 메시지 전송
+    /// </summary>
+    private void SendSecsGemMessageWithRetry(P_FRAMEMAP pFramemap)
+    {
+        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++)
+        {
+            try
+            {
+                _server.SendMessage(pFramemap);
+                _logger.Debug($"SECS/GEM 메시지 전송 성공");
+                return;
+            }
+            catch (Exception ex) when (attempt < MAX_RETRY_ATTEMPTS)
+            {
+                _logger.Warn($"SECS/GEM 전송 시도 {attempt} 실패: {ex.Message}");
+                Thread.Sleep(RETRY_DELAY_MS);
+            }
+        }
+        
+        throw new InvalidOperationException($"SECS/GEM 메시지 전송 실패 (최대 재시도 횟수 초과)");
+    }
+
+    /// <summary>
+    /// 재시도 로직을 포함한 데이터베이스 저장
+    /// </summary>
+    private void SaveToDatabaseWithRetry(P_FRAMEMAP pFramemap)
+    {
+        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++)
+        {
+            try
+            {
+                SaveToDatabase(pFramemap);
+                _logger.Debug($"데이터베이스 저장 성공");
+                return;
+            }
+            catch (Exception ex) when (attempt < MAX_RETRY_ATTEMPTS)
+            {
+                _logger.Warn($"데이터베이스 저장 시도 {attempt} 실패: {ex.Message}");
+                Thread.Sleep(RETRY_DELAY_MS);
+            }
+        }
+        
+        throw new InvalidOperationException($"데이터베이스 저장 실패 (최대 재시도 횟수 초과)");
+    }
+
+    /// <summary>
+    /// 파일이 사용 가능한 상태가 될 때까지 대기
+    /// </summary>
+    private bool WaitForFileReady(string filePath)
+    {
+        var startTime = DateTime.Now;
         
         while ((DateTime.Now - startTime).TotalMilliseconds < FILE_WAIT_TIMEOUT_MS)
         {
             try
             {
-                // 파일 열기 시도로 사용 중인지 확인
-                using (var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
+                if (IsFileReady(filePath))
                 {
-                    // 성공적으로 열리면 사용 중이 아님
-                    fileStream.Close();
-                    LOGGER.Debug($"파일 사용 가능: {filePath}");
                     return true;
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                // 파일이 사용 중이거나 잠겨있음, 잠시 대기
-                Thread.Sleep(FILE_WAIT_INTERVAL_MS);
+                _logger.Debug($"파일 접근 실패 (재시도): {ex.Message}");
             }
-            catch (Exception ex)
-            {
-                LOGGER.Error($"파일 접근 확인 중 오류: {filePath}", ex);
-                return false;
-            }
+            
+            Thread.Sleep(FILE_WAIT_INTERVAL_MS);
         }
         
-        // 타임아웃 발생
-        LOGGER.Warn($"파일 대기 시간 초과: {filePath}");
         return false;
     }
-    
+
     /// <summary>
-    /// 시리얼 포트로 단일 바이트 명령 전송 (스레드 안전)
+    /// 파일이 읽기/쓰기 가능한 상태인지 확인
     /// </summary>
-    /// <param name="command">전송할 명령 바이트</param>
-    private void SendMessageToSerialPort(byte command)
+    private bool IsFileReady(string filePath)
     {
-        lock (_serialPortLock)
+        try
         {
-            try
+            using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
             {
-                if (_stopHandlerSerialPort != null && _stopHandlerSerialPort.IsOpen)
+                // 파일 크기가 0보다 큰지 추가 확인 (쓰기 완료 여부)
+                if (stream.Length == 0)
                 {
-                    byte[] buffer = { command };
-                    _stopHandlerSerialPort.Write(buffer, 0, buffer.Length);
-                    LOGGER.Debug($"시리얼 포트 명령 전송: 0x{command:X2}");
+                    return false; // 아직 쓰기 중일 수 있음
                 }
-                else
-                {
-                    LOGGER.Warn("시리얼 포트가 열려있지 않아 명령을 전송할 수 없습니다.");
-                }
+                
+                return true;
             }
-            catch (InvalidOperationException ex)
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 데이터베이스에 검사 결과 저장
+    /// </summary>
+    private void SaveToDatabase(P_FRAMEMAP pFramemap)
+    {
+        try
+        {
+            string type = pFramemap.pcbSide == "FRONT" ? "paoi_front" : "paoi_back";
+            string pcbSerial = pFramemap.pcbSerial?.Length > 1 ? 
+                pFramemap.pcbSerial.Substring(1) : pFramemap.pcbSerial;
+
+            // 파라미터화된 쿼리로 SQL Injection 방지
+            string query = $@"
+                INSERT INTO tb_mos_aoi_results (pcbserial, {type}) 
+                VALUES (@pcbSerial, @mapInfo) 
+                ON DUPLICATE KEY UPDATE {type} = @mapInfo";
+
+            var parameters = new[]
             {
-                LOGGER.Error($"시리얼 포트 상태 오류: {ex.Message}", ex);
-                throw;
-            }
-            catch (TimeoutException ex)
+                new MySqlParameter("@pcbSerial", pcbSerial),
+                new MySqlParameter("@mapInfo", pFramemap.pcbMapInfo)
+            };
+
+            int affectedRows = MySqlHelper.ExecuteNonQuery(_mysqlConnectionString, query, parameters);
+            
+            _logger.Debug($"데이터베이스 저장 완료: {affectedRows} 행 영향 받음");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"데이터베이스 저장 실패: {ex.Message}", ex);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 처리 완료된 파일 정리
+    /// </summary>
+    private void CleanupProcessedFile(string filePath, string fileName)
+    {
+        try
+        {
+            if (_backupDirectory.Exists)
             {
-                LOGGER.Error($"시리얼 포트 전송 타임아웃: {ex.Message}", ex);
-                throw;
+                // 중복 파일명 처리
+                string backupFileName = GetUniqueBackupFileName(fileName);
+                string backupPath = Path.Combine(_backupDirectory.FullName, backupFileName);
+                
+                File.Move(filePath, backupPath, true);
+                _logger.Debug($"파일 백업 완료: {backupPath}");
             }
-            catch (Exception ex)
+            else
             {
-                LOGGER.Error($"시리얼 포트 전송 오류: {ex.Message}", ex);
-                throw;
+                File.Delete(filePath);
+                _logger.Debug($"파일 삭제 완료: {filePath}");
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"파일 정리 실패: {filePath}", ex);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 고유한 백업 파일명 생성
+    /// </summary>
+    private string GetUniqueBackupFileName(string originalFileName)
+    {
+        string baseName = Path.GetFileNameWithoutExtension(originalFileName);
+        string extension = Path.GetExtension(originalFileName);
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        
+        return $"{baseName}_{timestamp}{extension}";
+    }
+
+    /// <summary>
+    /// 파일 감시자 재시작
+    /// </summary>
+    private void RestartFileWatcher()
+    {
+        try
+        {
+            Stop();
+            Thread.Sleep(1000); // 잠시 대기
+            InitializeFileSystemWatcher();
+            Start();
+            _logger.Info("파일 감시자 재시작 완료");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"파일 감시자 재시작 실패: {ex.Message}", ex);
+        }
+    }
+    #endregion
+
+    #region 이벤트 발생 메서드
+    private void OnFileProcessingStarted(string filePath, string fileName)
+    {
+        FileProcessingStarted?.Invoke(this, 
+            new FileProcessingStartedEventArgs(filePath, fileName));
+    }
+
+    private void OnFileProcessingCompleted(string filePath, string fileName)
+    {
+        FileProcessingCompleted?.Invoke(this, 
+            new FileProcessingCompletedEventArgs(filePath, fileName));
+    }
+
+    private void OnFileProcessingFailed(string filePath, string fileName, 
+        ProcessingResult result, Exception? exception = null)
+    {
+        FileProcessingFailed?.Invoke(this, 
+            new FileProcessingFailedEventArgs(filePath, fileName, result, exception));
+    }
+    #endregion
+
+    #region IDisposable 구현
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_isDisposed)
+        {
+            if (disposing)
+            {
+                _fileWatcher?.Dispose();
+                _logger.Info("파일 처리기 리소스 정리 완료");
+            }
+            
+            _isDisposed = true;
         }
     }
     #endregion
 }
+
+#region 지원 클래스 및 인터페이스
+
+/// <summary>
+/// 파일 처리 결과 열거형
+/// </summary>
+public enum ProcessingResult
+{
+    Success,
+    FileNotFound,
+    FileLocked,
+    ParseFailed,
+    DatabaseError,
+    CommunicationError,
+    Exception
+}
+
+/// <summary>
+/// 파일 처리 이벤트 핸들러 인터페이스
+/// </summary>
+public interface IPaoiFileEventHandler
+{
+    void OnFileProcessingStarted(string filePath);
+    void OnFileProcessingCompleted(string filePath);
+    void OnFileProcessingFailed(string filePath, Exception exception);
+}
+
+/// <summary>
+/// 기본 파일 처리 이벤트 핸들러
+/// </summary>
+public class DefaultPaoiFileEventHandler : IPaoiFileEventHandler
+{
+    private readonly ILogger _logger;
+
+    public DefaultPaoiFileEventHandler(ILogger? logger = null)
+    {
+        _logger = logger ?? new NullLogger();
+    }
+
+    public void OnFileProcessingStarted(string filePath)
+    {
+        _logger.Info($"파일 처리 시작: {filePath}");
+    }
+
+    public void OnFileProcessingCompleted(string filePath)
+    {
+        _logger.Info($"파일 처리 완료: {filePath}");
+    }
+
+    public void OnFileProcessingFailed(string filePath, Exception exception)
+    {
+        _logger.Error($"파일 처리 실패: {filePath}", exception);
+    }
+}
+
+/// <summary>
+/// SECS/GEM 서버 인터페이스
+/// </summary>
+public interface ISecsGemServer
+{
+    void SendMessage(P_FRAMEMAP message);
+}
+
+/// <summary>
+/// 파일 처리 시작 이벤트 인자
+/// </summary>
+public class FileProcessingStartedEventArgs : EventArgs
+{
+    public string FilePath { get; }
+    public string FileName { get; }
+    public DateTime StartTime { get; }
+
+    public FileProcessingStartedEventArgs(string filePath, string fileName)
+    {
+        FilePath = filePath;
+        FileName = fileName;
+        StartTime = DateTime.Now;
+    }
+}
+
+/// <summary>
+/// 파일 처리 완료 이벤트 인자
+/// </summary>
+public class FileProcessingCompletedEventArgs : EventArgs
+{
+    public string FilePath { get; }
+    public string FileName { get; }
+    public DateTime StartTime { get; }
+    public DateTime EndTime { get; }
+    public TimeSpan Duration => EndTime - StartTime;
+
+    public FileProcessingCompletedEventArgs(string filePath, string fileName)
+    {
+        FilePath = filePath;
+        FileName = fileName;
+        EndTime = DateTime.Now;
+        StartTime = EndTime; // 실제로는 이전 시작 시간이 필요
+    }
+}
+
+/// <summary>
+/// 파일 처리 실패 이벤트 인자
+/// </summary>
+public class FileProcessingFailedEventArgs : EventArgs
+{
+    public string FilePath { get; }
+    public string FileName { get; }
+    public ProcessingResult Result { get; }
+    public Exception? Exception { get; }
+    public DateTime FailureTime { get; }
+
+    public FileProcessingFailedEventArgs(string filePath, string fileName, 
+        ProcessingResult result, Exception? exception = null)
+    {
+        FilePath = filePath;
+        FileName = fileName;
+        Result = result;
+        Exception = exception;
+        FailureTime = DateTime.Now;
+    }
+}
+
+#endregion
