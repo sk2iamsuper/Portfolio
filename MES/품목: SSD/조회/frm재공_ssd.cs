@@ -63,7 +63,7 @@ namespace mes_
             }
 
             // 사용자 권한에 따른 컨트롤 표시
-            if (frmMain.user_ID == "root") // PHS -> root로 변경
+            if (frmMain.user_ID == "root") 
             {
                 btnInit.Visible = true;
                 txtApprovalSales.Visible = true;
@@ -764,7 +764,7 @@ namespace mes_
             }
         }
 
-         private void SearchVP02List()
+         private void SearchSP02List()
         {
             using (MySqlConnection conn = Helpers.MySqlHelper.InitConnection("VPK-02"))
             {
@@ -810,7 +810,7 @@ namespace mes_
 
                     var week = Helpers.UiHelper.DiffWeek(row[3].ToString());
 
-                    dgvStepDetails.Rows.Add("VP02", series, row[0], row[1], row[2], row[4], "", row[5], "", "-", "", "", week, "", "");
+                    dgvStepDetails.Rows.Add("SP02", series, row[0], row[1], row[2], row[4], "", row[5], "", "-", "", "", week, "", "");
 
                     sum = sum + int.Parse(row[2].ToString());
                 }
@@ -822,7 +822,7 @@ namespace mes_
                     dgvStepDetails.Rows[dgvStepDetails.RowCount - 1].Cells[n].Style.BackColor = Color.LightGray;
             }
 
-            using (MySqlConnection conn = Helpers.MySqlHelper.InitConnection("VPK-01"))
+            using (MySqlConnection conn = Helpers.MySqlHelper.InitConnection("SPK-01"))
             {
                 conn.Open();
                 conn.Close();
@@ -2517,7 +2517,7 @@ namespace mes_
 
         private void textBox2_KeyDown(object sender, KeyEventArgs e)
         {
-            if (frmMain.user_ID != "PHS")
+            if (frmMain.user_ID != "root")
                 Clipboard.Clear();
         }
 
@@ -2723,7 +2723,7 @@ namespace mes_
 
         private void SearchTypeForERP2()
         {
-            using (MySqlConnection conn = Helpers.MySqlHelper.InitConnection("VPK-02"))
+            using (MySqlConnection conn = Helpers.MySqlHelper.InitConnection("SPK-02"))
             {
                 conn.Open();
                 dgvV2WIPList.Rows.Clear();
@@ -2765,7 +2765,7 @@ namespace mes_
                 txtZfmsQty.Text = sum.ToString();
             }
 
-            using (MySqlConnection conn = Helpers.MySqlHelper.InitConnection("VPK-01"))
+            using (MySqlConnection conn = Helpers.MySqlHelper.InitConnection("SPK-01"))
             {
                 conn.Open();
                 conn.Close();
@@ -2923,7 +2923,7 @@ namespace mes_
 
         private void txtCheckLotQty_DoubleClick(object sender, EventArgs e)
         {
-            if (frmMain.dbsite.Contains("VPK"))
+            if (frmMain.dbsite.Contains("SPK"))
             {
                 System.Media.SoundPlayer sp = new System.Media.SoundPlayer("http://192.168.50.252/image/wav/52WEEK.wav");
                 sp.Play();
@@ -2946,15 +2946,15 @@ namespace mes_
             }
         }
 
-        private void cbVP02_CheckedChanged(object sender, EventArgs e)
+        private void cbSP02_CheckedChanged(object sender, EventArgs e)
         {
-            if (cbVP02.Checked)
+            if (cbSP02.Checked)
             {
-                dgvTab1MainList.Columns["VP02"].Visible = true;
+                dgvTab1MainList.Columns["SP02"].Visible = true;
             }
             else
             {
-                dgvTab1MainList.Columns["VP02"].Visible = false;
+                dgvTab1MainList.Columns["SP02"].Visible = false;
             }
         }
 
