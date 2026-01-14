@@ -3,14 +3,13 @@
 단순 라이브러리 사용이 아닌,  SECS-II 메시지 구조,  HSMS 세션 상태,  Host / Equipment 역할 분리를 중심으로 실제 제조 현장에서 발생하는 통신 시나리오를 기준으로 구성되었습니다.
 
 System Architecture
-[MES / Host]
-     │
-     │  HSMS (TCP/IP)
-     │  - Select.req / rsp
-     │  - Linktest
-     ▼
-[Secsgem Core]
-     │
-     │  SECS-II Message Handling
-     ▼
-[Equipment Simulator]
+[MES / Host  (.NET)]
+      │
+      │  HSMS (TCP/IP, Async Socket)
+      ▼
+[SecsGem Core Library (C#)]
+      │
+      │  SECS-II Message / State Machine
+      ▼
+[Equipment Simulator (.NET)]
+
