@@ -123,3 +123,6 @@ public string GetSelectedPrinterPath()
 ---
 
 **이 프로젝트는 실제 현업 환경에서 운영되며, 지속적인 개선과 최적화를 통해 생산성과 정확성을 높이는 솔루션입니다.**
+
+<img width="1173" height="713" alt="WMS 실행화면" src="https://github.com/user-attachments/assets/ddad573a-c8b7-4300-ba41-9dd39418a20b" />
+
