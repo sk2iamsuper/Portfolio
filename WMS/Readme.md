@@ -123,13 +123,15 @@ public string GetSelectedPrinterPath()
 ---
 
 **이 프로젝트는 실제 현업 환경에서 운영되며, 지속적인 개선과 최적화를 통해 생산성과 정확성을 높이는 솔루션입니다.**
-
+FrmMain
 <img width="1173" height="713" alt="WMS 실행화면" src="https://github.com/user-attachments/assets/ddad573a-c8b7-4300-ba41-9dd39418a20b" />
-
+Picking
 <img width="1267" height="782" alt="스크린샷 2026-01-21 21 14 53" src="https://github.com/user-attachments/assets/174d8134-2d72-4781-a696-80663c899655" />
 <img width="1268" height="796" alt="스크린샷 2026-01-21 21 15 05" src="https://github.com/user-attachments/assets/4d8b18f8-aca3-4346-8e67-76d0e60f7c6f" />
 
 <img width="1259" height="707" alt="스크린샷 2026-01-21 21 15 53" src="https://github.com/user-attachments/assets/2cb7c72c-fa75-46b7-b821-fb2a5cab1995" />
 <img width="689" height="823" alt="image" src="https://github.com/user-attachments/assets/124d1f8d-625b-4ca1-ab39-1c35b0e8c4ed" />
-
+InnerBox
 <img width="1184" height="812" alt="image" src="https://github.com/user-attachments/assets/e225f1e4-9afd-4503-b75f-ac0fac4e53c4" />
+Stock
+<img width="919" height="795" alt="image" src="https://github.com/user-attachments/assets/61554542-d023-4c8f-9637-f70048e4da95" />
