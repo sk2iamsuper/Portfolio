@@ -26,9 +26,9 @@
 MES_WMS/
 ├── FrmMain.cs          # 메인 폼 - 시스템 중앙 컨트롤러
 ├── Picking.cs            # 피킹 관리 모듈
-├── QC.cs            # 검수 관리 모듈
-├── PRF08.cs            # 내부 박스 관리 모듈
-├── PRF10.cs            # 재고 설정 모듈
+├── ManageQC.cs            # 검수 관리 모듈
+├── InnerBox.cs            # 내부 박스 관리 모듈
+├── Stock.cs            # 재고 설정 모듈
 ├── PRF12.cs            # QC 검사 모듈
 ├── PRF13.cs            # 사용자 설정 모듈
 ├── UserCommon/         # 공통 유틸리티
