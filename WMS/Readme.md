@@ -29,7 +29,7 @@ MES_WMS/
 ├── ManageQC.cs            # 검수 관리 모듈
 ├── InnerBox.cs            # 내부 박스 관리 모듈
 ├── Stock.cs            # 재고 설정 모듈
-├── PRF12.cs            # QC 검사 모듈
+├── QC.cs            # QC 검사 모듈
 ├── PRF13.cs            # 사용자 설정 모듈
 ├── UserCommon/         # 공통 유틸리티
 │   ├── Public_Function.cs
