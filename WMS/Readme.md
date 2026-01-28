@@ -141,3 +141,6 @@ InnerBox
 
 Stock
 <img width="919" height="795" alt="image" src="https://github.com/user-attachments/assets/61554542-d023-4c8f-9637-f70048e4da95" />
+
+QC
+<img width="1324" height="878" alt="image" src="https://github.com/user-attachments/assets/586baaa4-ea89-40a2-b7d2-eaa57f289465" />
