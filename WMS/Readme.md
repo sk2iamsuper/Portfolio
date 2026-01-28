@@ -129,11 +129,11 @@ FrmMain
 
 <img width="1267" height="782" alt="스크린샷 2026-01-21 21 14 53" src="https://github.com/user-attachments/assets/174d8134-2d72-4781-a696-80663c899655" />
 
-Picking
+Picking\n
 <img width="689" height="823" alt="image" src="https://github.com/user-attachments/assets/124d1f8d-625b-4ca1-ab39-1c35b0e8c4ed" />
 
-InnerBox</>
+InnerBox\n
 <img width="1184" height="812" alt="image" src="https://github.com/user-attachments/assets/e225f1e4-9afd-4503-b75f-ac0fac4e53c4" />
 
-QC</>
+QC\n
 <img width="1324" height="878" alt="image" src="https://github.com/user-attachments/assets/586baaa4-ea89-40a2-b7d2-eaa57f289465" />
