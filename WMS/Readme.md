@@ -132,8 +132,8 @@ public string GetSelectedPrinterPath()
 #Picking <br>
 <img width="689" height="823" alt="image" src="https://github.com/user-attachments/assets/124d1f8d-625b-4ca1-ab39-1c35b0e8c4ed" />
 
-InnerBox\n
+#InnerBox <br>
 <img width="1184" height="812" alt="image" src="https://github.com/user-attachments/assets/e225f1e4-9afd-4503-b75f-ac0fac4e53c4" />
 
-QC\n
+#QC <br>
 <img width="1324" height="878" alt="image" src="https://github.com/user-attachments/assets/586baaa4-ea89-40a2-b7d2-eaa57f289465" />
