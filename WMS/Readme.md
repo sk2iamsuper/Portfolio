@@ -128,10 +128,7 @@ FrmMain
 <img width="1173" height="713" alt="WMS 실행화면" src="https://github.com/user-attachments/assets/ddad573a-c8b7-4300-ba41-9dd39418a20b" />
 
 <img width="1267" height="782" alt="스크린샷 2026-01-21 21 14 53" src="https://github.com/user-attachments/assets/174d8134-2d72-4781-a696-80663c899655" />
-<img width="1268" height="796" alt="스크린샷 2026-01-21 21 15 05" src="https://github.com/user-attachments/assets/4d8b18f8-aca3-4346-8e67-76d0e60f7c6f" />
 
-
-<img width="1259" height="707" alt="스크린샷 2026-01-21 21 15 53" src="https://github.com/user-attachments/assets/2cb7c72c-fa75-46b7-b821-fb2a5cab1995" />
 
 Picking
 <img width="689" height="823" alt="image" src="https://github.com/user-attachments/assets/124d1f8d-625b-4ca1-ab39-1c35b0e8c4ed" />
