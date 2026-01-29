@@ -137,3 +137,6 @@ public string GetSelectedPrinterPath()
 
 #QC <br>
 <img width="1324" height="878" alt="image" src="https://github.com/user-attachments/assets/586baaa4-ea89-40a2-b7d2-eaa57f289465" />
+
+#User <br>
+<img width="356" height="444" alt="image" src="https://github.com/user-attachments/assets/7d894bc4-774e-4527-aa3f-86135987c04d" />
