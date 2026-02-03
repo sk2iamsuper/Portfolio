@@ -47,7 +47,13 @@ WinForms 기반 제조 MES 클라이언트 애플리케이션입니다. 생산/�
 - `mes+/60. 생산지원/` 생산 지원
 - `mes+/70. ERP/` ERP 연계
 
+## UI Highlights
+프로젝트 리소스에 포함된 주요 화면 이미지를 발췌했습니다.
+
+![MES Main UI](mes+/Resources/MES-3.png)
+![MES Screen](mes+/Resources/MES-1.png)
+![MES Theme](mes+/Resources/mes_spring.png)
+
 ## Notes
 - 프로젝트 내 일부 참조 DLL은 로컬 경로에 의존할 수 있습니다. (예: Excel Interop)
 - 환경별 DB 스키마/테이블이 필요합니다.
-
