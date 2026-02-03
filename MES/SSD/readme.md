@@ -49,10 +49,16 @@ WinForms 기반 제조 MES 클라이언트 애플리케이션입니다. 생산/�
 
 ## UI Highlights
 프로젝트 리소스에 포함된 주요 화면 이미지를 발췌했습니다.
+MAIN <br>
+<img width="1254" height="699" alt="image" src="https://github.com/user-attachments/assets/23c8b437-c652-4bed-bdbd-1474c93a8742" />
+제조 <br>
+<img width="1129" height="793" alt="image" src="https://github.com/user-attachments/assets/6ca5ebdd-b128-4a50-9bef-597049ed07c2" />
+smt1 <br>
+<img width="1129" height="793" alt="image" src="https://github.com/user-attachments/assets/23081857-fc0e-44b6-b914-0f762757f605" />
+smt2 <br>
+<img width="1383" height="786" alt="image" src="https://github.com/user-attachments/assets/b0225634-a9a4-4f40-921a-86a98544e4a2" />
 
-![MES Main UI](mes+/Resources/MES-3.png)
-![MES Screen](mes+/Resources/MES-1.png)
-![MES Theme](mes+/Resources/mes_spring.png)
+
 
 ## Notes
 - 프로젝트 내 일부 참조 DLL은 로컬 경로에 의존할 수 있습니다. (예: Excel Interop)
