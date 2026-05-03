@@ -1,5 +1,20 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Windows.Forms;
+using System.IO;
+using System.Xml;
 
+using Microsoft.Win32.SafeHandles;
+using System.Runtime.InteropServices;
+using System.Xml;
+using System.Xml.Serialization;
 
 
 
@@ -243,7 +258,10 @@ namespace ReelTW
                 ClassSystemConfig.Ins.m_UserDisplay[iCtrl].Dock = DockStyle.Fill;
             }
 
-        
+            //zebra
+            //string filepath = Directory.GetCurrentDirectory() + @"\Config Setting\DeviceConfig.ini";
+            ////ClassSystemConfig.Ins.m_ClsinitUtil ini = ClassSystemConfig.Ins.m_ClsinitUtil(filepath);
+            //ClassinitUtil ini = new ClassinitUtil(filepath);
 
             UserCtrlInfoPC CtrlInfo = new UserCtrlInfoPC();
             panelPCInfo.Controls.Add(CtrlInfo);
@@ -1116,7 +1134,31 @@ namespace ReelTW
                     ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, true, IsTrayID, ref strCodeID, ref iResult);
                     break;
 
-                
+                    //    case "11":
+                    //        IsTrayID = true;
+                    //        ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, false, ref strCodeID, ref iResult);
+                    //        //ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, false, IsTrayID, ref strCodeID, ref iResult);
+                    //        strData = string.Format("{0}", strCodeID);
+                    //        break;
+                    //    case "12":
+                    //        ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, false, true,  ref strCodeID, ref iResult);
+                    //        //ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, false, true, IsTrayID, ref strCodeID, ref iResult);
+                    //        strData = string.Format("{0}", iResult);
+                    //        break;
+                    //    case "13":
+                    //        ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, false,  ref strCodeID, ref iResult);
+                    //        //ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, false, IsTrayID, ref strCodeID, ref iResult);
+                    //        strData = string.Format("{0}", strCodeID);
+                    //        break;
+                    //    case "14":
+                    //        ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, true,  ref strCodeID, ref iResult);
+                    //        //ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, true, IsTrayID, ref strCodeID, ref iResult);
+                    //        strData = string.Format("{0};{1}", iResult, strCodeID);
+                    //        break;
+                    //    default:
+                    //        ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, true,  ref strCodeID, ref iResult);
+                    //        //ClassSystemConfig.Ins.m_FrmVision.RunProcessCodeID(inputImage, indexCam, indexCam, true, true, IsTrayID, ref strCodeID, ref iResult);
+                    //        break;
             }
 
             // Send Data
@@ -1271,12 +1313,34 @@ namespace ReelTW
             _toolTip.SetToolTip(btnExit, "Exit");
             _toolTip.SetToolTip(btnMinimize, "Minimize");
             _toolTip.SetToolTip(btnMaximum, "Maximum");
-           
+            //_toolTip.SetToolTip(btnGotoFolder, "Goto Folder");
+            //_toolTip.SetToolTip(btnInfo, "Show Info");
+            //_toolTip.SetToolTip(btnKeyboard, "Keyboard");
+            //_toolTip.SetToolTip(btnStart, "Start Program");
+            //_toolTip.SetToolTip(btnStop, "Stop Program");
             _toolTip.SetToolTip(btnSaveConfig_, "Save Configs");
-        
+            //_toolTip.SetToolTip(btnRefresh, "Refresh");
+            //_toolTip.SetToolTip(btnLoadModel, "Load Model");
         }
 
-      
+        //Print_path = GetConfigValues("BARCODE", "PRINT");
+
+        //public String GetConfigValues(String SectionID, String FiledStr)
+        //{
+        //    String RtnValue = "";
+
+        //    RtnValue = GetIniValue(SectionID, FiledStr);
+        //    return RtnValue;
+        //}
+
+        //public String GetIniValue(String Section, String Key)
+        //{
+        //string iniPath = Directory.GetCurrentDirectory() + @"\Config Setting\DeviceConfig.ini";
+
+        //    StringBuilder temp = new StringBuilder(255);
+        //    int i = GetPrivateProfileString(Section, Key, "", temp, 255, iniPath);
+        //    return temp.ToString();
+        //}
 
 
 
@@ -1315,7 +1379,9 @@ namespace ReelTW
 
             // Create a buffer with the command
             Byte[] buffer = new byte[DATA.Length];
-          
+            //buffer = enc.GetBytes(DATA);
+            //buffer = System.Text.Encoding.ASCII.GetBytes(DATA);
+            //SafeFileHandle printer = CreateFile(Print_path + @"\13", FileAccess.ReadWrite, 0, IntPtr.Zero, FileMode.OpenOrCreate, 0, IntPtr.Zero);
 
             //serial port
             buffer = System.Text.Encoding.ASCII.GetBytes(DATA);
@@ -1623,7 +1689,46 @@ namespace ReelTW
 
 
 
-       
+        //public void UpdateCurrentModel()
+        //{
+        //    if (btnRefresh.InvokeRequired)
+        //    {
+        //        btnRefresh.Invoke(new MethodInvoker(delegate
+        //        {
+        //            m_ListRecipes.Clear();
+        //            cbBoxListRecipes.Items.Clear();
+        //            m_ListRecipes = ClassSystemConfig.Ins.m_FrmVision.GetListRecipe(ClassSystemConfig.Ins.m_ClsCommon.m_strRecipePath).ToList();
+        //            if (m_ListRecipes != null && m_ListRecipes.Count > 0)
+        //            {
+        //                cbBoxListRecipes.Items.AddRange(m_ListRecipes.ToArray());
+        //                if (cbBoxListRecipes.Items.Contains(ClassSystemConfig.Ins.m_ClsCommon.m_strRecipeName.Trim()))
+        //                {
+        //                    cbBoxListRecipes.SelectedItem = ClassSystemConfig.Ins.m_ClsCommon.m_strRecipeName.Trim();
+        //                }
+        //                else
+        //                    cbBoxListRecipes.SelectedIndex = 0;
+        //            }
+        //        }));
+        //    }
+        //    else
+        //    {
+        //        m_ListRecipes.Clear();
+        //        cbBoxListRecipes.Items.Clear();
+        //        m_ListRecipes = ClassSystemConfig.Ins.m_FrmVision.GetListRecipe(ClassSystemConfig.Ins.m_ClsCommon.m_strRecipePath).ToList();
+        //        if (m_ListRecipes != null && m_ListRecipes.Count > 0)
+        //        {
+        //            cbBoxListRecipes.Items.AddRange(m_ListRecipes.ToArray());
+        //            if (cbBoxListRecipes.Items.Contains(ClassSystemConfig.Ins.m_ClsCommon.m_strRecipeName.Trim()))
+        //            {
+        //                cbBoxListRecipes.SelectedItem = ClassSystemConfig.Ins.m_ClsCommon.m_strRecipeName.Trim();
+        //            }
+        //            else
+        //                cbBoxListRecipes.SelectedIndex = 0;
+        //        }
+        //    }
+        //    //ClassCommon.ControlTextInvoke(cbBoxListRecipes, ClassSystemConfig.Ins.m_ClsCommon.m_strRecipeName);
+        //}
+        //#endregion
         public void UpdateAliveStatus(bool aLive)
         {
             if (ClassSystemConfig.Ins.m_ClsClient.ClientConnected && aLive)
@@ -1935,10 +2040,9 @@ namespace ReelTW
             bool bComConnected = false;
             for (int iCam = 0; iCam < ClassCommon.MaxDevice; iCam++)
             {
-                if (!ClassSystemConfig.Ins.m_ClsHIK[iCam].IsConnected && ClassSystemConfig.Ins.m_ClsCommon.m_ListEnableControl[iCam])
+                if (ClassSystemConfig.Ins.m_ClsCommon.m_ListEnableControl[iCam])
                 {
-                    ClassSystemConfig.Ins.m_ClsHIK[iCam].ConnectDevice(ClassSystemConfig.Ins.m_ClsCommon.m_ListIPCAM[iCam]);
-                    bComConnected |= ClassSystemConfig.Ins.m_ClsHIK[iCam].IsConnected;
+                    bComConnected |= ClassSystemConfig.Ins.m_ClsHIK[iCam].StartCameraInterface(ClassSystemConfig.Ins.m_ClsCommon.m_ListIPCAM[iCam]);
                 }
             }
 
@@ -1950,7 +2054,7 @@ namespace ReelTW
 
             if (!ClassSystemConfig.Ins.m_FrmPLC.IsConnectedPLC && ClassSystemConfig.Ins.m_ClsCommon.m_bEnableUsePLC)
             {
-                ClassSystemConfig.Ins.m_FrmPLC.OpenConnectPLC();
+                ClassSystemConfig.Ins.m_FrmPLC.StartPlcInterface();
             }
 
             if (!ClassSystemConfig.Ins.m_ClsClient.ClientConnected && ClassSystemConfig.Ins.m_ClsCommon.m_bEnableZEBRA)
@@ -1998,6 +2102,7 @@ namespace ReelTW
         private void btnStop_Click(object sender, EventArgs e)
         {
             ClassSystemConfig.Ins.m_ClsCommon._Status.PROGRAM_STARTED = false;
+            ClassSystemConfig.Ins.m_ClsCommon._Status.ResetForProgramStop();
             ClassSystemConfig.Ins.m_ClsFunc.SaveLog(ClassFunction.SAVING_LOG_TYPE.HANDLER_CLICKED,
                                                     "Clicked Stop",
                                                     ClassSystemConfig.Ins.m_ClsCommon.IsSaveLog_Local, true);
@@ -2007,14 +2112,11 @@ namespace ReelTW
 
             for (int iCam = 0; iCam < ClassCommon.MaxDevice; iCam++)
             {
-                if (ClassSystemConfig.Ins.m_ClsHIK[iCam].IsConnected)
-                {
-                    ClassSystemConfig.Ins.m_ClsHIK[iCam].DisConnectDevice();
-                }
+                ClassSystemConfig.Ins.m_ClsHIK[iCam].StopCameraInterface();
             }
 
             if (ClassSystemConfig.Ins.m_FrmPLC.IsConnectedPLC)
-                ClassSystemConfig.Ins.m_FrmPLC.CloseConnectPLC();
+                ClassSystemConfig.Ins.m_FrmPLC.StopPlcInterface();
 
             if (ClassSystemConfig.Ins.m_ClsClient.ClientConnected)
                 ClassSystemConfig.Ins.m_ClsClient.CloseSocket();
@@ -2127,10 +2229,25 @@ namespace ReelTW
                 CustomerPo = words[0].ToString();
                 Qty = words[4].ToString();
 
-             
+                //foreach (var word in words)
+                //{
+                //    CustomerPo = word[0].ToString();
+                //    Qty = word[3].ToString();
+                //}
+                //Label l = new Label();
+                //lblIns.Text = strCodeID.ToString();
                 lblIns.Text = "Customer P/No: "+ CustomerPo +"           "+ "Qty: "+ Qty;
                 
-           
+                //l.BorderStyle = BorderStyle.None;
+                //l.BackColor = Color.Transparent;
+                //l.ForeColor = Color.Gold;
+                //l.FlatStyle = FlatStyle.Standard;
+                //l.Text = strCodeID;
+                ////l.Size = new Size(175, 33); 
+                //l.Location =  new Point(0,0);
+                ////l.BackColor = Color.White;
+                //l.Dock = DockStyle.Fill;
+                //l.Visible = true;
 
                 ClassSystemConfig.Ins.m_UserDisplay[2].Controls.Add(lblIns);
                 //lblIns.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -2143,7 +2260,9 @@ namespace ReelTW
 
                 m_ListResultBuffer[0] = iResult;
                 m_ListResultFlag[0] = true;
-              
+                //ClassSystemConfig.Ins.m_ClsCommon._Status.VISION_Busy = false;
+
+                //ClassSystemConfig.Ins.m_UserDisplay[0].SetImage(cogImage);
                 Thread.Sleep(2);
             }
 
@@ -2207,7 +2326,21 @@ namespace ReelTW
 
         private void ClearGraphicView()
         {
-            
+            //for (int i = 0; i < ClassSystemConfig.Ins.m_ListPocket.Count; i++)
+            //{
+            //    Array.Clear(ClassSystemConfig.Ins.m_ListPocket[i].ListPointResult, 0, ClsPocketPosition.MAXPOINT);
+            //    Array.Clear(ClassSystemConfig.Ins.m_ListPocket[i].ListPointFlagReady, 0, ClsPocketPosition.MAXPOINT);
+            //    Array.Clear(ClassSystemConfig.Ins.m_ListPocket[i].ListPointFlagDone, 0, ClsPocketPosition.MAXPOINT);
+            //    Array.Clear(ClassSystemConfig.Ins.m_ListPocket[i].ListBitmapPos, 0, ClsPocketPosition.MAXPOINT);
+            //    Array.Clear(ClassSystemConfig.Ins.m_ListPocket[i].ListImageGraphic, 0, ClsPocketPosition.MAXPOINT);
+            //    Array.Clear(ClassSystemConfig.Ins.m_ListPocket[i].ListContentLog, 0, ClsPocketPosition.MAXPOINT);
+            //    Array.Clear(ClassSystemConfig.Ins.m_ListPocket[i].ListHeaderLog, 0, ClsPocketPosition.MAXPOINT);
+            //    ClassSystemConfig.Ins.m_ListPocket[i].FinalResultValue = 0;
+            //    ClassSystemConfig.Ins.m_ListPocket[i].PocketInspectDone = false;
+            //    ClassSystemConfig.Ins.m_ListPocket[i].CodeID = "";
+            //    ClassSystemConfig.Ins.m_ListPocket[i].ErrCode = 0;
+
+            //}
 
             for (int i = 0; i < ClassCommon.MaxUserControl; i++)
             {
@@ -2316,7 +2449,8 @@ namespace ReelTW
             ClassSystemConfig.Ins.m_ClsFunc.SaveLog(ClassFunction.SAVING_LOG_TYPE.LOADER,
                                                     "PLC Sent Trigger CMD = " + cmd_value,
                                                     ClassSystemConfig.Ins.m_ClsCommon.IsSaveLog_Local, false);
-            Bitmap inputImage = ClassSystemConfig.Ins.m_ClsFunc.GetImageFromTrigger(indexCam, 2, 1000);
+            Bitmap inputImage;
+            ClassSystemConfig.Ins.m_ClsFunc.TryGetImageFromTrigger(indexCam, ClassCommon.DefaultTriggerRetry, ClassCommon.DefaultVisionTimeoutMs, out inputImage);
 
             // Show Image
             ClassSystemConfig.Ins.m_UserDisplay[indexCam].SetImage(inputImage);
