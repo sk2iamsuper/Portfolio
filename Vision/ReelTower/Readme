@@ -1,0 +1,240 @@
+
+비전 검사 장비에서 PLC 신호, 카메라 검사, 자재타워 TCP/IP 통신을 연동하기 위한 WinForms 기반 설비 제어 프로젝트입니다.  
+포트폴리오용으로 핵심 비즈니스 로직은 **PLC 핸드셰이크**, **비전 검사 알고리즘 실행**, **Smart LMS 자재타워 XML 통신**에 집중해 정리했습니다.
+
+이 프로젝트는 단순 UI 프로그램이 아니라 설비 자동화에서 필요한 핵심 흐름을 포함합니다.
+
+- PLC와 Vision PC 간 실시간 상태 핸드셰이크
+- 카메라 트리거부터 이미지 취득, 검사, 결과 반환까지의 자동화 흐름
+- Cognex VisionPro 기반 검사 알고리즘 실행 구조
+- Melsec PLC TCP 프레임 직접 구성
+- Smart LMS 자재타워 XML TCP/IP 통신 사양 구현
+- 설비 로그, 검사 이미지, 결과 데이터 저장 구조
+
+## 핵심 기능
+
+- PLC 신호 기반 자동 검사 흐름 제어
+- HIK GigE 카메라 연결 및 소프트웨어 트리거 이미지 취득
+- Cognex VisionPro ToolBlock 기반 검사 알고리즘 실행
+- 검사 결과 OK/NG, 각도, QR/CodeID 데이터 추출
+- 검사 결과를 PLC Word 영역으로 반환
+- Smart LMS 자재타워 TCP/IP XML 통신
+- 검사 이미지, 그래픽 이미지, CSV/프로그램 로그 저장
+
+## 기술 스택
+
+- C#
+- Windows Forms
+- TCP/IP Socket
+- Mitsubishi Melsec PLC Communication
+- HIK GigE Camera SDK
+- Cognex VisionPro
+- XML 기반 설비 Interface
+## 주요 흐름
+
+```text
+Main
+ ├─ 장비 설정 로드
+ ├─ 카메라 연결
+ ├─ PLC 연결
+ ├─ 자재타워 TCP/IP 연결
+ └─ 검사 시작
+
+PLC Trigger
+ ├─ 카메라 소프트웨어 트리거
+ ├─ 이미지 취득
+ ├─ VisionPro ToolBlock 실행
+ ├─ OK/NG 및 코드 데이터 추출
+ ├─ PLC 결과 영역 Write
+ └─ 이미지/로그 저장
+
+Tower TCP/IP
+ ├─ REELSYS XML 수신
+ ├─ 명령 NAME 기준 switch-case 처리
+ ├─ Reel 투입/배출/확인 응답 생성
+ └─ XML 응답 송신
+```
+
+## 핵심 클래스
+
+### Main.cs
+
+프로그램의 전체 운전 흐름을 관리합니다.
+
+- UI 초기화
+- 설정 로드/저장
+- 카메라, PLC, DB, 타워 통신 시작/정지
+- 검사 결과 큐 및 카운터 관리
+- 수동/자동 검사 흐름 연결
+
+### FormPLC.cs
+
+PLC와 Vision PC 사이의 핸드셰이크를 담당합니다.
+
+- PLC 상태/트리거 Word Read
+- Vision 상태/결과 Word Write
+- Alive, Ready, Busy, Reset 상태 관리
+- CAM1/CAM2 검사 완료 신호 반환
+- 검사 결과, 각도, QR 문자열을 PLC Word 버퍼로 변환
+
+주요 메서드:
+
+```csharp
+StartPlcInterface()
+StopPlcInterface()
+WriteResultToPLC_CAM1()
+WriteResultToPLC_CAM2()
+WriteToPLC_TriggerDone()
+```
+
+### FormVisionSetting.cs
+
+Cognex VisionPro 검사 알고리즘 실행과 레시피 관리를 담당합니다.
+
+- `.vpp` ToolBlock 레시피 로드/저장
+- 모델 번호 기반 자동 레시피 로딩
+- CodeID, QR, Align 검사 실행
+- CAM1/CAM2 검사 결과 변환
+- 검사 이미지 및 그래픽 저장 큐 등록
+
+주요 메서드:
+
+```csharp
+LoadRecipeStartup()
+LoadRecipeAuto()
+RunProcessCodeID()
+RunProcessCAM1()
+RunProcessCAM2()
+```
+
+### ClassFunction.cs
+
+공통 검사 유틸리티입니다.
+
+- 카메라 소프트웨어 트리거 이미지 취득
+- Cognex 이미지 저장/로드
+- 검사 이미지 저장 폴더 구성
+- CSV/텍스트 로그 저장
+
+주요 메서드:
+
+```csharp
+GetImageFromTrigger()
+TryGetImageFromTrigger()
+SaveImageAsPocket()
+SaveLog()
+SaveCSVLog()
+```
+
+### ClsHIK.cs
+
+HIK GigE 카메라 SDK 연동 클래스입니다.
+
+- GigE 카메라 검색
+- IP 기준 카메라 연결
+- 소프트웨어 트리거 실행
+- SDK 콜백 이미지 수신
+- Raw frame을 Bitmap으로 변환
+
+주요 메서드:
+
+```csharp
+StartCameraInterface()
+StopCameraInterface()
+ConnectDevice()
+SetTriggerSoftware()
+ImageCallBackFunc()
+```
+
+### ClassMelsecPLC.cs
+
+Mitsubishi Melsec PLC TCP 통신 클래스입니다.
+
+- Melsec TCP 3E 프레임 생성
+- PLC Word/Bit Read
+- PLC Word/Bit Write
+- 응답 프레임 파싱
+- Word 데이터를 short, bool, ASCII로 변환
+
+주요 메서드:
+
+```csharp
+Initialize()
+ReadWordFromPLC()
+WriteWordFromPLC()
+ReadBitFromPLC()
+WriteBitFromPLC()
+```
+
+## 자재타워 TCP/IP 통신
+
+`class/TowerCommunication` 폴더에 Smart LMS 자재타워 통신 모듈을 분리했습니다.
+
+### TowerCommunicationService.cs
+
+수신 XML을 파싱하고 명령별 응답을 생성합니다.  
+요청받은 방식처럼 `switch-case` 구조로 명령을 처리합니다.
+
+지원 명령:
+
+```text
+REELLOADCHECK
+REELLOADCHECKDONE
+REELLOADIN
+REELLOADDONE
+REELUNLOADOUT
+REELUNLOADCHECK
+REELUNLOADCHECKDONE
+REELUNLOADDONE
+```
+
+### TowerTcpClient.cs
+
+TCP/IP 연결과 송수신 루프를 담당합니다.
+
+- TCP 연결/해제
+- 수신 버퍼 누적
+- `</REELSYS>` 종료 태그 기준 메시지 분리
+- XML 문자열 송신
+
+### TowerMessage.cs
+
+`REELSYS` XML 메시지를 C# 객체로 변환합니다.
+
+- 통신 ID
+- 명령 NAME
+- REQUESTID
+- Reel 목록
+- Box 목록
+- OK/NG/ERROR 결과
+
+### TowerMessageFactory.cs
+
+사양서 기준 응답 XML을 생성합니다.
+
+- Reel ID 조회 응답
+- 투입 승인 응답
+- 적재 결과 응답
+- 배출 요청/확인 응답
+- Box 배출 완료 응답
+
+## 설정값
+
+주요 설정은 `DeviceConfig.ini` 형식으로 관리합니다.
+
+```ini
+[PLC_IP]  192.168.10.40
+[PLC_PORT]  4000
+[PLC_ENABLE_USE]  1
+
+[TOWER_IP]  192.168.10.50
+[TOWER_PORT]  5000
+[TOWER_ENABLE_USE]  1
+
+[IP CAM VISION 1]  192.168.100.10
+[IP CAM VISION 2]  192.168.100.20
+```
+
+
+```
+```
